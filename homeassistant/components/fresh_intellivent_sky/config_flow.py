@@ -34,7 +34,6 @@ class Discovery:
 
 def get_name(device: FreshIntelliVent) -> str:
     """Generate name with identifier for device."""
-    _LOGGER.warning("Generating name..?")
     return f"{device.manufacturer} {device.name}"
 
 
@@ -72,11 +71,12 @@ class FreshIntelliventSkyConfigFlow(ConfigFlow, domain=DOMAIN):
             async with device.connect(ble_device) as client:
                 _LOGGER.debug("_get_device_data 5")
                 await device.authenticate("CHANGEME")
-                await device.get_sensor_data()
+                await device.fetch_sensor_data()
                 if client.sensors.authenticated is False:
                     raise FreshIntelliventSkyDeviceUpdateError(
                         "Not authenticated. Wrong authentication code?"
                     )
+                await device.fetch_device_information()
         except BleakError as err:
             _LOGGER.error(
                 "Error connecting to and getting data from %s: %s",

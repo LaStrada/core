@@ -52,10 +52,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         try:
             async with fresh.connect(ble_device) as client:
                 await client.authenticate(auth_code)
-                await client.get_device_information()
-                await client.get_sensor_data()
+                await client.fetch_sensor_data()
                 if client.sensors.authenticated is False:
                     raise UpdateFailed("Not authenticated. Wrong authentication code?")
+                await client.fetch_device_information()
+                await client.fetch_airing()
+                await client.fetch_constant_speed()
+                await client.fetch_humidity()
+                await client.fetch_light_and_voc()
+                await client.fetch_timer()
 
         except Exception as err:
             raise UpdateFailed(f"Unable to fetch data: {err}") from err
