@@ -135,6 +135,7 @@ FLOWS = {
         "foscam",
         "freebox",
         "freedompro",
+        "fresh_intellivent_sky",
         "fritz",
         "fritzbox",
         "fritzbox_callmonitor",
