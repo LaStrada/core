@@ -56,6 +56,12 @@ BLUETOOTH: list[dict[str, bool | str | int | list[int]]] = [
         "manufacturer_id": 20296,
     },
     {
+        "connectable": True,
+        "domain": "fresh_intellivent_sky",
+        "local_name": "Intellivent SKY",
+        "service_uuid": "0000180a-0000-1000-8000-00805f9b34fb",
+    },
+    {
         "connectable": False,
         "domain": "govee_ble",
         "local_name": "Govee*",
