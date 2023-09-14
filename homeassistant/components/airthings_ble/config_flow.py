@@ -205,7 +205,7 @@ class AirthingsOptionsFlowHandler(OptionsFlow):
                         default=self.config_entry.options.get(
                             CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
                         ),
-                    ): int,
+                    ): vol.All(int, vol.Range(min=60, max=3600)),
                 }
             ),
         )

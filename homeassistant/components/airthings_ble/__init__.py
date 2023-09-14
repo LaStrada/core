@@ -14,7 +14,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util.unit_system import METRIC_SYSTEM
 
-from .const import CONF_CONFIG_LISTENER, DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
@@ -54,7 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
     )
 
-    entry_data[CONF_CONFIG_LISTENER] = entry.add_update_listener(update_listener)
+    entry.async_on_unload(entry.add_update_listener(update_listener))
 
     coordinator = DataUpdateCoordinator(
         hass,
