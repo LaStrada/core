@@ -15,11 +15,12 @@ from homeassistant.components.bluetooth import (
     BluetoothServiceInfo,
     async_discovered_service_info,
 )
-from homeassistant.config_entries import ConfigFlow
-from homeassistant.const import CONF_ADDRESS
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
+from homeassistant.const import CONF_ADDRESS, CONF_SCAN_INTERVAL
+from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 
-from .const import DOMAIN, MFCT_ID
+from .const import DEFAULT_SCAN_INTERVAL, DOMAIN, MFCT_ID
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -169,5 +170,42 @@ class AirthingsConfigFlow(ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(CONF_ADDRESS): vol.In(titles),
                 },
+            ),
+        )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: ConfigEntry,
+    ) -> OptionsFlow:
+        """Create the options flow."""
+        return AirthingsOptionsFlowHandler(config_entry)
+
+
+class AirthingsOptionsFlowHandler(OptionsFlow):
+    """Handle Airthings options flow."""
+
+    def __init__(self, config_entry: ConfigEntry) -> None:
+        """Initialize Airthings options flow."""
+        self.config_entry = config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle options flow."""
+        if user_input is not None:
+            return self.async_create_entry(title=DOMAIN, data=user_input)
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_SCAN_INTERVAL,
+                        default=self.config_entry.options.get(
+                            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+                        ),
+                    ): int,
+                }
             ),
         )
