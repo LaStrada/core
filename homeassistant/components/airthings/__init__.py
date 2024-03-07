@@ -4,12 +4,13 @@ from __future__ import annotations
 from datetime import timedelta
 import logging
 
-from airthings import Airthings, AirthingsDevice, AirthingsError
+from airthings import AirthingsError
+from airthings_for_consumer_api_client.parser import Airthings, AirthingsDevice
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ID, Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.httpx_client import get_async_client
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import CONF_SECRET, DOMAIN
@@ -29,13 +30,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     airthings = Airthings(
         entry.data[CONF_ID],
         entry.data[CONF_SECRET],
-        async_get_clientsession(hass),
+        get_async_client(hass),
     )
 
-    async def _update_method() -> dict[str, AirthingsDevice]:
+    async def _update_method() -> dict[str, AirthingsDevice] | None:
         """Get the latest data from Airthings."""
         try:
-            return await airthings.update_devices()  # type: ignore[no-any-return]
+            return airthings.update_devices()
         except AirthingsError as err:
             raise UpdateFailed(f"Unable to fetch data: {err}") from err
 
