@@ -5,7 +5,7 @@ from datetime import timedelta
 import logging
 
 from airthings import AirthingsError
-from airthings_for_consumer_api_client.parser import Airthings, AirthingsDevice
+from airthings_sdk import Airthings, AirthingsDevice
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ID, Platform
