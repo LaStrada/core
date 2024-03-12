@@ -19,6 +19,7 @@ from homeassistant.const import (
     SIGNAL_STRENGTH_DECIBELS,
     EntityCategory,
     UnitOfPressure,
+    UnitOfRadon,
     UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant
@@ -33,7 +34,8 @@ from .const import DOMAIN
 SENSORS: dict[str, SensorEntityDescription] = {
     "radonShortTermAvg": SensorEntityDescription(
         key="radonShortTermAvg",
-        native_unit_of_measurement="Bq/m³",
+        device_class=SensorDeviceClass.RADON,
+        native_unit_of_measurement=UnitOfRadon.BECQUEREL_PER_CUBIC_METER,
         translation_key="radon",
     ),
     "temp": SensorEntityDescription(
