@@ -904,7 +904,7 @@ _DEPRECATED_FREQUENCY_GIGAHERTZ: Final = DeprecatedConstantEnum(
 """Deprecated: please use UnitOfFrequency.GIGAHERTZ"""
 
 
-# Radon
+# Radon units
 class UnitOfRadon(StrEnum):
     """Radon units."""
 

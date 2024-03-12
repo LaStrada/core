@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import dataclasses
 import logging
 
 from airthings_ble import AirthingsDevice
@@ -22,6 +21,7 @@ from homeassistant.const import (
     EntityCategory,
     Platform,
     UnitOfPressure,
+    UnitOfRadon,
     UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant, callback
@@ -41,9 +41,8 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
 )
-from homeassistant.util.unit_system import METRIC_SYSTEM
 
-from .const import DOMAIN, VOLUME_BECQUEREL, VOLUME_PICOCURIE
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,13 +50,15 @@ SENSORS_MAPPING_TEMPLATE: dict[str, SensorEntityDescription] = {
     "radon_1day_avg": SensorEntityDescription(
         key="radon_1day_avg",
         translation_key="radon_1day_avg",
-        native_unit_of_measurement=VOLUME_BECQUEREL,
+        device_class=SensorDeviceClass.RADON,
+        native_unit_of_measurement=UnitOfRadon.BECQUEREL_PER_CUBIC_METER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     "radon_longterm_avg": SensorEntityDescription(
         key="radon_longterm_avg",
         translation_key="radon_longterm_avg",
-        native_unit_of_measurement=VOLUME_BECQUEREL,
+        device_class=SensorDeviceClass.RADON,
+        native_unit_of_measurement=UnitOfRadon.BECQUEREL_PER_CUBIC_METER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     "radon_1day_level": SensorEntityDescription(
@@ -155,22 +156,12 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Airthings BLE sensors."""
-    is_metric = hass.config.units is METRIC_SYSTEM
-
     coordinator: DataUpdateCoordinator[AirthingsDevice] = hass.data[DOMAIN][
         entry.entry_id
     ]
 
     # we need to change some units
     sensors_mapping = SENSORS_MAPPING_TEMPLATE.copy()
-    if not is_metric:
-        for key, val in sensors_mapping.items():
-            if val.native_unit_of_measurement is not VOLUME_BECQUEREL:
-                continue
-            sensors_mapping[key] = dataclasses.replace(
-                val,
-                native_unit_of_measurement=VOLUME_PICOCURIE,
-            )
 
     entities = []
     _LOGGER.debug("got sensors: %s", coordinator.data.sensors)
