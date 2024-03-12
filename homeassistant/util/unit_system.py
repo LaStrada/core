@@ -12,6 +12,7 @@ from homeassistant.const import (
     LENGTH,
     MASS,
     PRESSURE,
+    RADON,
     TEMPERATURE,
     UNIT_NOT_RECOGNIZED_TEMPLATE,
     VOLUME,
@@ -20,6 +21,7 @@ from homeassistant.const import (
     UnitOfMass,
     UnitOfPrecipitationDepth,
     UnitOfPressure,
+    UnitOfRadon,
     UnitOfSpeed,
     UnitOfTemperature,
     UnitOfVolume,
@@ -29,6 +31,7 @@ from homeassistant.const import (
 from .unit_conversion import (
     DistanceConverter,
     PressureConverter,
+    RadonConverter,
     SpeedConverter,
     TemperatureConverter,
     VolumeConverter,
@@ -51,6 +54,8 @@ MASS_UNITS: set[str] = {
 }
 
 PRESSURE_UNITS = PressureConverter.VALID_UNITS
+
+RADON_UNITS = RadonConverter.VALID_UNITS
 
 VOLUME_UNITS = VolumeConverter.VALID_UNITS
 
@@ -75,6 +80,8 @@ def _is_valid_unit(unit: str, unit_type: str) -> bool:
         return unit in VOLUME_UNITS
     if unit_type == PRESSURE:
         return unit in PRESSURE_UNITS
+    if unit_type == RADON:
+        return unit in RADON_UNITS
     return False
 
 
@@ -90,6 +97,7 @@ class UnitSystem:
         length: UnitOfLength,
         mass: UnitOfMass,
         pressure: UnitOfPressure,
+        radon: UnitOfRadon,
         temperature: UnitOfTemperature,
         volume: UnitOfVolume,
         wind_speed: UnitOfSpeed,
@@ -105,6 +113,7 @@ class UnitSystem:
                 (volume, VOLUME),
                 (mass, MASS),
                 (pressure, PRESSURE),
+                (radon, RADON),
             )
             if not _is_valid_unit(unit, unit_type)
         )
@@ -120,6 +129,7 @@ class UnitSystem:
         self.pressure_unit = pressure
         self.volume_unit = volume
         self.wind_speed_unit = wind_speed
+        self.radon_unit = radon
         self._conversions = conversions
 
     def temperature(self, temperature: float, from_unit: str) -> float:
@@ -181,6 +191,16 @@ class UnitSystem:
             volume, from_unit, self.volume_unit
         )
 
+    def radon(self, radon: float | None, from_unit: str) -> float:
+        """Convert the given radon to this unit system."""
+        if not isinstance(radon, Number):
+            raise TypeError(f"{radon!s} is not a numeric value.")
+
+        # type ignore: https://github.com/python/mypy/issues/7207
+        return RadonConverter.convert(  # type: ignore[unreachable]
+            radon, from_unit, self.radon_unit
+        )
+
     def as_dict(self) -> dict[str, str]:
         """Convert the unit system to a dictionary."""
         return {
@@ -188,6 +208,7 @@ class UnitSystem:
             ACCUMULATED_PRECIPITATION: self.accumulated_precipitation_unit,
             MASS: self.mass_unit,
             PRESSURE: self.pressure_unit,
+            RADON: self.radon_unit,
             TEMPERATURE: self.temperature_unit,
             VOLUME: self.volume_unit,
             WIND_SPEED: self.wind_speed_unit,
@@ -258,6 +279,11 @@ METRIC_SYSTEM = UnitSystem(
         # Convert non-metric pressure
         ("pressure", UnitOfPressure.PSI): UnitOfPressure.KPA,
         ("pressure", UnitOfPressure.INHG): UnitOfPressure.HPA,
+        # Convert non-metric radon
+        (
+            "radon",
+            UnitOfRadon.PICOCURIE_PER_LITER,
+        ): UnitOfRadon.BECQUEREL_PER_CUBIC_METER,
         # Convert non-metric speeds except knots to km/h
         ("speed", UnitOfSpeed.FEET_PER_SECOND): UnitOfSpeed.KILOMETERS_PER_HOUR,
         ("speed", UnitOfSpeed.MILES_PER_HOUR): UnitOfSpeed.KILOMETERS_PER_HOUR,
@@ -288,6 +314,7 @@ METRIC_SYSTEM = UnitSystem(
     length=UnitOfLength.KILOMETERS,
     mass=UnitOfMass.GRAMS,
     pressure=UnitOfPressure.PA,
+    radon=UnitOfRadon.BECQUEREL_PER_CUBIC_METER,
     temperature=UnitOfTemperature.CELSIUS,
     volume=UnitOfVolume.LITERS,
     wind_speed=UnitOfSpeed.METERS_PER_SECOND,
@@ -330,6 +357,8 @@ US_CUSTOMARY_SYSTEM = UnitSystem(
         ("pressure", UnitOfPressure.HPA): UnitOfPressure.PSI,
         ("pressure", UnitOfPressure.KPA): UnitOfPressure.PSI,
         ("pressure", UnitOfPressure.MMHG): UnitOfPressure.INHG,
+        # Convert non-USCS radon
+        ("radon", UnitOfRadon.PICOCURIE_PER_LITER): UnitOfRadon.PICOCURIE_PER_LITER,
         # Convert non-USCS speeds, except knots, to mph
         ("speed", UnitOfSpeed.METERS_PER_SECOND): UnitOfSpeed.MILES_PER_HOUR,
         ("speed", UnitOfSpeed.KILOMETERS_PER_HOUR): UnitOfSpeed.MILES_PER_HOUR,
@@ -358,6 +387,7 @@ US_CUSTOMARY_SYSTEM = UnitSystem(
     length=UnitOfLength.MILES,
     mass=UnitOfMass.POUNDS,
     pressure=UnitOfPressure.PSI,
+    radon=UnitOfRadon.PICOCURIE_PER_LITER,
     temperature=UnitOfTemperature.FAHRENHEIT,
     volume=UnitOfVolume.GALLONS,
     wind_speed=UnitOfSpeed.MILES_PER_HOUR,

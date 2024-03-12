@@ -30,6 +30,7 @@ from homeassistant.const import (
     UnitOfPower,
     UnitOfPrecipitationDepth,
     UnitOfPressure,
+    UnitOfRadon,
     UnitOfSoundPressure,
     UnitOfSpeed,
     UnitOfTemperature,
@@ -56,6 +57,7 @@ from homeassistant.util.unit_conversion import (
     MassConverter,
     PowerConverter,
     PressureConverter,
+    RadonConverter,
     SpeedConverter,
     TemperatureConverter,
     UnitlessRatioConverter,
@@ -320,6 +322,14 @@ class SensorDeviceClass(StrEnum):
     - `psi`
     """
 
+    RADON = "radon"
+    """Amount of radon.
+
+    Unit of measurement:
+    - SI / metric: `Bq/m³`
+    - USCS / imperial: `pCi/L`
+    """
+
     REACTIVE_POWER = "reactive_power"
     """Reactive power.
 
@@ -498,6 +508,7 @@ UNIT_CONVERTERS: dict[SensorDeviceClass | str | None, type[BaseUnitConverter]] =
     SensorDeviceClass.PRECIPITATION: DistanceConverter,
     SensorDeviceClass.PRECIPITATION_INTENSITY: SpeedConverter,
     SensorDeviceClass.PRESSURE: PressureConverter,
+    SensorDeviceClass.RADON: RadonConverter,
     SensorDeviceClass.SPEED: SpeedConverter,
     SensorDeviceClass.TEMPERATURE: TemperatureConverter,
     SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS_PARTS: UnitlessRatioConverter,
@@ -553,6 +564,7 @@ DEVICE_CLASS_UNITS: dict[SensorDeviceClass, set[type[StrEnum] | str | None]] = {
     SensorDeviceClass.PRECIPITATION: set(UnitOfPrecipitationDepth),
     SensorDeviceClass.PRECIPITATION_INTENSITY: set(UnitOfVolumetricFlux),
     SensorDeviceClass.PRESSURE: set(UnitOfPressure),
+    SensorDeviceClass.RADON: set(UnitOfRadon),
     SensorDeviceClass.REACTIVE_POWER: {POWER_VOLT_AMPERE_REACTIVE},
     SensorDeviceClass.SIGNAL_STRENGTH: {
         SIGNAL_STRENGTH_DECIBELS,
@@ -623,6 +635,7 @@ DEVICE_CLASS_STATE_CLASSES: dict[SensorDeviceClass, set[SensorStateClass]] = {
     SensorDeviceClass.PRECIPITATION: set(SensorStateClass),
     SensorDeviceClass.PRECIPITATION_INTENSITY: {SensorStateClass.MEASUREMENT},
     SensorDeviceClass.PRESSURE: {SensorStateClass.MEASUREMENT},
+    SensorDeviceClass.RADON: {SensorStateClass.MEASUREMENT},
     SensorDeviceClass.REACTIVE_POWER: {SensorStateClass.MEASUREMENT},
     SensorDeviceClass.SIGNAL_STRENGTH: {SensorStateClass.MEASUREMENT},
     SensorDeviceClass.SOUND_PRESSURE: {SensorStateClass.MEASUREMENT},

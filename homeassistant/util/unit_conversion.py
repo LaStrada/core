@@ -19,6 +19,7 @@ from homeassistant.const import (
     UnitOfMass,
     UnitOfPower,
     UnitOfPressure,
+    UnitOfRadon,
     UnitOfSpeed,
     UnitOfTemperature,
     UnitOfTime,
@@ -317,6 +318,21 @@ class PressureConverter(BaseUnitConverter):
         UnitOfPressure.INHG,
         UnitOfPressure.PSI,
         UnitOfPressure.MMHG,
+    }
+
+
+class RadonConverter(BaseUnitConverter):
+    """Utility to convert radon values."""
+
+    UNIT_CLASS = "radon"
+    NORMALIZED_UNIT = UnitOfRadon.BECQUEREL_PER_CUBIC_METER
+    _UNIT_CONVERSION: dict[str | None, float] = {
+        UnitOfRadon.BECQUEREL_PER_CUBIC_METER: 1,
+        UnitOfRadon.PICOCURIE_PER_LITER: 1 / 37,
+    }
+    VALID_UNITS = {
+        UnitOfRadon.BECQUEREL_PER_CUBIC_METER,
+        UnitOfRadon.PICOCURIE_PER_LITER,
     }
 
 

@@ -904,6 +904,14 @@ _DEPRECATED_FREQUENCY_GIGAHERTZ: Final = DeprecatedConstantEnum(
 """Deprecated: please use UnitOfFrequency.GIGAHERTZ"""
 
 
+# Radon
+class UnitOfRadon(StrEnum):
+    """Radon units."""
+
+    BECQUEREL_PER_CUBIC_METER = "Bq/m³"
+    PICOCURIE_PER_LITER = "pCi/L"
+
+
 # Pressure units
 class UnitOfPressure(StrEnum):
     """Pressure units."""
@@ -1555,6 +1563,7 @@ SPEED: Final = "speed"
 WIND_SPEED: Final = "wind_speed"
 ILLUMINANCE: Final = "illuminance"
 ACCUMULATED_PRECIPITATION: Final = "accumulated_precipitation"
+RADON: Final = "radon"
 
 WEEKDAYS: Final[list[str]] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 
