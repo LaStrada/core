@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from airthings import AirthingsDevice
+from airthings_sdk import AirthingsDevice
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -111,11 +111,11 @@ async def async_setup_entry(
         AirthingsHeaterEnergySensor(
             coordinator,
             airthings_device,
-            SENSORS[sensor_types],
+            SENSORS[sensors.sensor_type],
         )
         for airthings_device in coordinator.data.values()
-        for sensor_types in airthings_device.sensor_types
-        if sensor_types in SENSORS
+        for sensors in airthings_device.sensors
+        if sensors.sensor_type in SENSORS
     ]
     async_add_entities(entities)
 
@@ -139,28 +139,41 @@ class AirthingsHeaterEnergySensor(
 
         self.entity_description = entity_description
 
-        self._attr_unique_id = f"{airthings_device.device_id}_{entity_description.key}"
-        self._id = airthings_device.device_id
+        self._attr_unique_id = (
+            f"{airthings_device.serial_number}_{entity_description.key}"
+        )
+        self._id = airthings_device.serial_number
         self._attr_device_info = DeviceInfo(
             configuration_url=(
                 "https://dashboard.airthings.com/devices/"
-                f"{airthings_device.device_id}"
+                f"{airthings_device.serial_number}"
             ),
-            identifiers={(DOMAIN, airthings_device.device_id)},
+            identifiers={(DOMAIN, airthings_device.serial_number)},
             name=airthings_device.name,
             manufacturer="Airthings",
-            model=airthings_device.product_name,
+            model=airthings_device.type.product_name,
         )
 
     @property
     def native_value(self) -> StateType:
         """Return the value reported by the sensor."""
-        return self.coordinator.data[self._id].sensors[self.entity_description.key]  # type: ignore[no-any-return]
+        return next(
+            (
+                sensor.value
+                for sensor in self.coordinator.data[self._id].sensors
+                if sensor.sensor_type == self.entity_description.key
+            ),
+            None,
+        )
 
     @property
     def available(self) -> bool:
         """Check if device and sensor is available in data."""
-        return (
-            super().available
-            and self.entity_description.key in self.coordinator.data[self._id].sensors
+        return next(
+            (
+                sensor.value is not None
+                for sensor in self.coordinator.data[self._id].sensors
+                if sensor.sensor_type == self.entity_description.key
+            ),
+            False,
         )

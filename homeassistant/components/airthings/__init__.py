@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import timedelta
 import logging
 
-from airthings import Airthings, AirthingsDevice, AirthingsError
+from airthings_sdk import Airthings, AirthingsDevice, ApiError
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ID, Platform
@@ -36,7 +36,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: AirthingsConfigEntry) ->
         """Get the latest data from Airthings."""
         try:
             return await airthings.update_devices()  # type: ignore[no-any-return]
-        except AirthingsError as err:
+        except ApiError as err:
             raise UpdateFailed(f"Unable to fetch data: {err}") from err
 
     coordinator = DataUpdateCoordinator(

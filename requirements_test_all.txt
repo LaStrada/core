@@ -389,7 +389,7 @@ airly==1.1.0
 airthings-ble==0.9.0
 
 # homeassistant.components.airthings
-airthings-cloud==0.2.0
+airthings-sdk==1.0.0
 
 # homeassistant.components.airtouch4
 airtouch4pyapi==1.0.5
