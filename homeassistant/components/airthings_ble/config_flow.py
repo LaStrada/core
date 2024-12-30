@@ -101,6 +101,8 @@ class AirthingsConfigFlow(ConfigFlow, domain=DOMAIN):
         self, discovery_info: BluetoothServiceInfo
     ) -> ConfigFlowResult:
         """Handle the bluetooth discovery step."""
+
+        _LOGGER.debug("async_step_bluetooth")
         _LOGGER.debug("Discovered BT device: %s", discovery_info)
         await self.async_set_unique_id(discovery_info.address)
         self._abort_if_unique_id_configured()
@@ -112,13 +114,9 @@ class AirthingsConfigFlow(ConfigFlow, domain=DOMAIN):
         except Exception:  # noqa: BLE001
             return self.async_abort(reason="unknown")
 
-        # if device.data.need_fw_upgrade:
-        #     return self.async_abort(reason="update_available")
-
         name = get_name(device)
         self.context["title_placeholders"] = {
             "name": name,
-            "firmware": device.device.firmware.current_firmware,
         }
         self._discovered_device = Discovery(name, discovery_info, device.device)
 
@@ -128,52 +126,42 @@ class AirthingsConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Confirm discovery."""
+
+        _LOGGER.debug("async_step_bluetooth_confirm")
+
         if user_input is not None:
             return self.async_create_entry(
                 title=self.context["title_placeholders"]["name"], data={}
             )
 
-        if (
-            self._discovered_device is not None
-            and self._discovered_device.device.firmware.need_fw_upgrade
-        ):
-            return self.async_show_form(
-                step_id="bluetooth_confirm",
-                description_placeholders=self.context["title_placeholders"],
-                last_step=True,
-            )
-        self._set_confirm_only()
         return self.async_show_form(
-            step_id="firmware_upgrade_required",
-            description_placeholders={
-                "current": (
-                    self._discovered_device.device.firmware.current_firmware
-                    if self._discovered_device
-                    else "N/A"
-                ),
-                "needed": (
-                    self._discovered_device.device.firmware.needed_firmware
-                    if self._discovered_device
-                    else "N/A"
-                ),
-            },
+            step_id="bluetooth_confirm",
+            description_placeholders=self.context["title_placeholders"],
+            last_step=True,
         )
-
-    async def async_step_firmware_upgrade_required(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Handle the need firmware upgrade step."""
-        return self.async_abort(reason="firmware_upgrade_required")
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle the user step to pick discovered device."""
+
+        _LOGGER.debug("async_step_user")
+
         if user_input is not None:
             address = user_input[CONF_ADDRESS]
             await self.async_set_unique_id(address, raise_on_progress=False)
             self._abort_if_unique_id_configured()
             discovery = self._discovered_devices[address]
+
+            _LOGGER.debug(
+                "FW: %s - %s - %s",
+                discovery.device.firmware.current_firmware,
+                discovery.device.firmware.needed_firmware,
+                discovery.device.firmware.need_fw_upgrade,
+            )
+
+            if discovery.device.firmware.need_fw_upgrade:
+                return self.async_abort(reason="firmware_upgrade_required")
 
             self.context["title_placeholders"] = {
                 "name": discovery.name,
