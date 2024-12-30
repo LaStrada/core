@@ -101,9 +101,6 @@ class AirthingsConfigFlow(ConfigFlow, domain=DOMAIN):
         self, discovery_info: BluetoothServiceInfo
     ) -> ConfigFlowResult:
         """Handle the bluetooth discovery step."""
-
-        _LOGGER.debug("async_step_bluetooth")
-        _LOGGER.debug("Discovered BT device: %s", discovery_info)
         await self.async_set_unique_id(discovery_info.address)
         self._abort_if_unique_id_configured()
 
@@ -126,9 +123,6 @@ class AirthingsConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Confirm discovery."""
-
-        _LOGGER.debug("async_step_bluetooth_confirm")
-
         if user_input is not None:
             return self.async_create_entry(
                 title=self.context["title_placeholders"]["name"], data={}
@@ -144,9 +138,6 @@ class AirthingsConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle the user step to pick discovered device."""
-
-        _LOGGER.debug("async_step_user")
-
         if user_input is not None:
             address = user_input[CONF_ADDRESS]
             await self.async_set_unique_id(address, raise_on_progress=False)
