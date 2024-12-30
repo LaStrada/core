@@ -29,6 +29,12 @@ BLUETOOTH: Final[list[dict[str, bool | str | int | list[int]]]] = [
         "service_uuid": "b42e3882-ade7-11e4-89d3-123b93f75cba",
     },
     {
+        "domain": "airthings_ble",
+        "local_name": "Airthings Tern *",
+        "manufacturer_id": 820,
+        "service_uuid": "b42eb4a6-ade7-11e4-89d3-123b93f75cba",
+    },
+    {
         "connectable": False,
         "domain": "aranet",
         "manufacturer_id": 1794,

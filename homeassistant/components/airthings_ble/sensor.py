@@ -16,10 +16,12 @@ from homeassistant.components.sensor import (
 from homeassistant.const import (
     CONCENTRATION_PARTS_PER_BILLION,
     CONCENTRATION_PARTS_PER_MILLION,
+    LIGHT_LUX,
     PERCENTAGE,
     EntityCategory,
     Platform,
     UnitOfPressure,
+    UnitOfSoundPressure,
     UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant, callback
@@ -103,6 +105,18 @@ SENSORS_MAPPING_TEMPLATE: dict[str, SensorEntityDescription] = {
         key="illuminance",
         translation_key="illuminance",
         native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    "lux": SensorEntityDescription(
+        key="lux",
+        device_class=SensorDeviceClass.ILLUMINANCE,
+        native_unit_of_measurement=LIGHT_LUX,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    "noise": SensorEntityDescription(
+        key="noise",
+        device_class=SensorDeviceClass.SOUND_PRESSURE,
+        native_unit_of_measurement=UnitOfSoundPressure.WEIGHTED_DECIBEL_A,
         state_class=SensorStateClass.MEASUREMENT,
     ),
 }
