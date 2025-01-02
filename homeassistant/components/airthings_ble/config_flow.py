@@ -186,7 +186,7 @@ class AirthingsConfigFlow(ConfigFlow, domain=DOMAIN):
             except Exception:  # noqa: BLE001
                 return self.async_abort(reason="unknown")
 
-            if device.model == AirthingsDeviceType.UNKNOWN:
+            if device.model is AirthingsDeviceType.UNKNOWN:
                 _LOGGER.debug("Skipping unsupported device: %s", discovery_info.name)
                 continue
 
