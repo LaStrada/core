@@ -50,7 +50,6 @@ BLUETOOTH: Final[list[dict[str, bool | str | int | list[int]]]] = [
     },
     {
         "domain": "airthings_ble",
-        "local_name": "Airthings Tern CO2",
         "manufacturer_id": 820,
         "service_uuid": "b42e90a2-ade7-11e4-89d3-123b93f75cba",
     },
