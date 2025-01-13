@@ -191,7 +191,7 @@ class AirthingsConfigFlow(ConfigFlow, domain=DOMAIN):
                 return self.async_abort(reason="cannot_connect")
             except UnsupportedDeviceError:
                 _LOGGER.debug("Skipping unsupported device: %s", discovery_info.name)
-                continue
+                return self.async_abort(reason="unsupported_device")
             except Exception:  # noqa: BLE001
                 return self.async_abort(reason="unknown")
 
