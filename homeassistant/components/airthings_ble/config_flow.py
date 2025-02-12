@@ -52,7 +52,7 @@ def get_name(device: AirthingsDevice) -> str:
 
     name = device.friendly_name()
     if identifier := device.identifier:
-        name += f" ({device.model.value}{identifier})"
+        name += f" ({identifier})"
     return name
 
 
@@ -92,7 +92,7 @@ class AirthingsConfigFlow(ConfigFlow, domain=DOMAIN):
         except UnsupportedDeviceError:
             _LOGGER.debug("Skipping unsupported device: %s", discovery_info.name)
             raise
-        except Exception as err:  # noqa: BLE001
+        except Exception as err:
             _LOGGER.error(
                 "Unknown error occurred from %s: %s", discovery_info.address, err
             )
@@ -160,13 +160,15 @@ class AirthingsConfigFlow(ConfigFlow, domain=DOMAIN):
             if discovery.device.firmware.need_fw_upgrade:
                 return self.async_abort(reason="firmware_upgrade_required")
 
+            title = get_name(discovery.device)
+
             self.context["title_placeholders"] = {
-                "name": discovery.device.name,
+                "name": title,
             }
 
             self._discovered_device = discovery
 
-            return self.async_create_entry(title=discovery.device.name, data={})
+            return self.async_create_entry(title=title, data={})
 
         current_addresses = self._async_current_ids()
         for discovery_info in list(async_discovered_service_info(self.hass)):
