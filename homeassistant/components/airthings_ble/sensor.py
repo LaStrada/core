@@ -22,7 +22,7 @@ from homeassistant.const import (
     UnitOfSoundPressure,
     UnitOfTemperature,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import CONNECTION_BLUETOOTH, DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
@@ -168,24 +168,35 @@ async def async_setup_entry(
 ) -> None:
     """Set up the Airthings BLE sensors."""
     coordinator = entry.runtime_data
+    seen_keys: set[str] = set()
 
-    entities = []
+    @callback
+    def _async_add_new_entities() -> None:
+        entities = []
+        for sensor_type, sensor_value in coordinator.data.sensors.items():
+            if sensor_type in seen_keys:
+                continue
+            seen_keys.add(sensor_type)
+            if sensor_type not in SENSORS_MAPPING_TEMPLATE:
+                _LOGGER.debug(
+                    "Unknown sensor type detected: %s, %s",
+                    sensor_type,
+                    sensor_value,
+                )
+                continue
+            entities.append(
+                AirthingsSensor(
+                    coordinator,
+                    coordinator.data,
+                    SENSORS_MAPPING_TEMPLATE[sensor_type],
+                )
+            )
+        if entities:
+            async_add_entities(entities)
+
     _LOGGER.debug("got sensors: %s", coordinator.data.sensors)
-    for sensor_type, sensor_value in coordinator.data.sensors.items():
-        if sensor_type not in SENSORS_MAPPING_TEMPLATE:
-            _LOGGER.debug(
-                "Unknown sensor type detected: %s, %s",
-                sensor_type,
-                sensor_value,
-            )
-            continue
-        entities.append(
-            AirthingsSensor(
-                coordinator, coordinator.data, SENSORS_MAPPING_TEMPLATE[sensor_type]
-            )
-        )
-
-    async_add_entities(entities)
+    _async_add_new_entities()
+    entry.async_on_unload(coordinator.async_add_listener(_async_add_new_entities))
 
 
 class AirthingsSensor(
