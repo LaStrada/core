@@ -95,7 +95,7 @@ class AirthingsConfigFlow(ConfigFlow, domain=DOMAIN):
             )
             raise
         if not device.address:
-            _LOGGER.error(
+            _LOGGER.debug(
                 "Incomplete data from %s, the read ended early", discovery_info.address
             )
             raise AirthingsDeviceUpdateError("Incomplete device data")

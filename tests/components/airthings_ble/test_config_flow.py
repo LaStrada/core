@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from airthings_ble import AirthingsDevice, AirthingsDeviceType, UnsupportedDeviceError
 from bleak import BleakError
+from bleak.backends.device import BLEDevice
 from home_assistant_bluetooth import BluetoothServiceInfoBleak
 import pytest
 
@@ -26,6 +27,7 @@ from . import (
 )
 
 from tests.common import MockConfigEntry
+from tests.components.bluetooth import generate_ble_device
 
 INCOMPLETE_WAVE_DEVICE_INFO = deepcopy(WAVE_DEVICE_INFO)
 INCOMPLETE_WAVE_DEVICE_INFO.address = ""
@@ -168,20 +170,56 @@ async def test_bluetooth_discovery_incomplete_read(hass: HomeAssistant) -> None:
 
 async def test_user_setup_skips_incomplete_read(hass: HomeAssistant) -> None:
     """Test the user step skips a device whose read ends before the address."""
+    second_address = "dd:dd:dd:dd:dd:dd"
+    second_service_info = BluetoothServiceInfoBleak(
+        name="dd-dd-dd-dd-dd-dd",
+        address=second_address,
+        device=generate_ble_device(address=second_address, name="Airthings Wave+"),
+        rssi=WAVE_SERVICE_INFO.rssi,
+        manufacturer_data=WAVE_SERVICE_INFO.manufacturer_data,
+        service_data=WAVE_SERVICE_INFO.service_data,
+        service_uuids=WAVE_SERVICE_INFO.service_uuids,
+        source=WAVE_SERVICE_INFO.source,
+        advertisement=WAVE_SERVICE_INFO.advertisement,
+        connectable=True,
+        time=0,
+        tx_power=0,
+    )
+    complete_device = deepcopy(WAVE_DEVICE_INFO)
+    complete_device.address = second_address
+
+    def read(ble_device: BLEDevice) -> AirthingsDevice:
+        if ble_device.address == second_address:
+            return complete_device
+        return INCOMPLETE_WAVE_DEVICE_INFO
+
     with (
         patch(
             "homeassistant.components.airthings_ble.config_flow.async_discovered_service_info",
-            return_value=[WAVE_SERVICE_INFO],
+            return_value=[WAVE_SERVICE_INFO, second_service_info],
         ),
-        patch_async_ble_device_from_address(WAVE_SERVICE_INFO),
-        patch_airthings_ble(INCOMPLETE_WAVE_DEVICE_INFO),
+        patch(
+            "homeassistant.components.bluetooth.async_ble_device_from_address",
+            side_effect=lambda _, address, *__: generate_ble_device(address=address),
+        ),
+        patch_airthings_ble(side_effect=read),
     ):
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": SOURCE_USER}
         )
 
-    assert result["type"] is FlowResultType.ABORT
-    assert result["reason"] == "no_devices_found"
+    assert result["type"] is FlowResultType.FORM
+    assert result["data_schema"].schema.get(CONF_ADDRESS).container == {
+        second_address: "Airthings Wave Plus (2930123456)"
+    }
+
+    with patch_async_setup_entry():
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={CONF_ADDRESS: second_address}
+        )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["result"].unique_id == second_address
 
 
 async def test_bluetooth_discovery_already_setup(hass: HomeAssistant) -> None:
