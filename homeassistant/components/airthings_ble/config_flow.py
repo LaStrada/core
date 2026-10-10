@@ -94,6 +94,11 @@ class AirthingsConfigFlow(ConfigFlow, domain=DOMAIN):
                 "Unknown error occurred from %s: %s", discovery_info.address, err
             )
             raise
+        if not device.address:
+            _LOGGER.error(
+                "Incomplete data from %s, the read ended early", discovery_info.address
+            )
+            raise AirthingsDeviceUpdateError("Incomplete device data")
         return device
 
     @override

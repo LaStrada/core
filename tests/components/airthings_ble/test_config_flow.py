@@ -1,5 +1,6 @@
 """Test the Airthings BLE config flow."""
 
+from copy import deepcopy
 from unittest.mock import patch
 
 from airthings_ble import AirthingsDevice, AirthingsDeviceType, UnsupportedDeviceError
@@ -26,6 +27,9 @@ from . import (
 
 from tests.common import MockConfigEntry
 
+INCOMPLETE_WAVE_DEVICE_INFO = deepcopy(WAVE_DEVICE_INFO)
+INCOMPLETE_WAVE_DEVICE_INFO.address = ""
+
 
 @pytest.mark.parametrize(
     ("identifier", "expected_name"),
@@ -47,6 +51,7 @@ async def test_bluetooth_discovery(
                 model=wave_plus_device,
                 name="Airthings Wave Plus",
                 identifier=identifier,
+                address=WAVE_SERVICE_INFO.address,
             )
         ),
     ):
@@ -86,6 +91,7 @@ async def test_user_setup_device_added_while_form_open(hass: HomeAssistant) -> N
                 model=AirthingsDeviceType.WAVE_PLUS,
                 name="Airthings Wave Plus",
                 identifier="123456",
+                address=WAVE_SERVICE_INFO.address,
             )
         ),
     ):
@@ -144,6 +150,40 @@ async def test_bluetooth_discovery_airthings_ble_update_failed(
     assert result["reason"] == reason
 
 
+async def test_bluetooth_discovery_incomplete_read(hass: HomeAssistant) -> None:
+    """Test discovery aborts when the device read ends before the address."""
+    with (
+        patch_async_ble_device_from_address(WAVE_SERVICE_INFO),
+        patch_airthings_ble(INCOMPLETE_WAVE_DEVICE_INFO),
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": SOURCE_BLUETOOTH},
+            data=WAVE_SERVICE_INFO,
+        )
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "cannot_connect"
+
+
+async def test_user_setup_skips_incomplete_read(hass: HomeAssistant) -> None:
+    """Test the user step skips a device whose read ends before the address."""
+    with (
+        patch(
+            "homeassistant.components.airthings_ble.config_flow.async_discovered_service_info",
+            return_value=[WAVE_SERVICE_INFO],
+        ),
+        patch_async_ble_device_from_address(WAVE_SERVICE_INFO),
+        patch_airthings_ble(INCOMPLETE_WAVE_DEVICE_INFO),
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": SOURCE_USER}
+        )
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "no_devices_found"
+
+
 async def test_bluetooth_discovery_already_setup(hass: HomeAssistant) -> None:
     """Test discovery via bluetooth with a valid device when already setup."""
     entry = MockConfigEntry(
@@ -175,6 +215,7 @@ async def test_user_setup(hass: HomeAssistant) -> None:
                 model=wave_plus_device,
                 name="Airthings Wave Plus",
                 identifier="123456",
+                address=WAVE_SERVICE_INFO.address,
             )
         ),
     ):
@@ -228,6 +269,7 @@ async def test_user_setup_replaces_ignored_device(hass: HomeAssistant) -> None:
                 model=wave_plus_device,
                 name="Airthings Wave Plus",
                 identifier="123456",
+                address=WAVE_SERVICE_INFO.address,
             )
         ),
     ):
@@ -359,6 +401,7 @@ async def test_bluetooth_confirm_firmware_required(hass: HomeAssistant) -> None:
         model=AirthingsDeviceType.WAVE_ENHANCE_EU,
         name="Airthings Wave Enhance",
         identifier="123456",
+        address=WAVE_SERVICE_INFO.address,
     )
     device.firmware.update_current_version("1.0.0")
     device.firmware.update_required_version("2.6.1")
@@ -391,6 +434,7 @@ async def test_step_user_firmware_required(hass: HomeAssistant) -> None:
         model=AirthingsDeviceType.WAVE_ENHANCE_EU,
         name="Airthings Wave Enhance",
         identifier="123456",
+        address=WAVE_SERVICE_INFO.address,
     )
     device.firmware.update_current_version("1.0.0")
     device.firmware.update_required_version("2.6.1")
