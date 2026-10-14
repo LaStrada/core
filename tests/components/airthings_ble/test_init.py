@@ -15,10 +15,10 @@ from homeassistant.components.airthings_ble.const import (
     DEVICE_SPECIFIC_SCAN_INTERVAL,
     DOMAIN,
 )
-from homeassistant.config_entries import ConfigEntryState
+from homeassistant.config_entries import ConfigEntryDisabler, ConfigEntryState
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from . import (
     CORENTIUM_HOME_2_DEVICE_INFO,
@@ -463,3 +463,142 @@ async def test_device_registry_sw_version_updates_on_refresh(
     device = device_registry.async_get(device.id)
     assert device is not None
     assert device.sw_version == "G-BLE-2.2.3-master+0"
+
+
+def _ghost_entry(minor_version: int = 1) -> MockConfigEntry:
+    """Return a Wave Plus config entry from before the ghost device cleanup."""
+    return MockConfigEntry(
+        domain=DOMAIN,
+        unique_id=WAVE_SERVICE_INFO.address,
+        data={DEVICE_MODEL: WAVE_DEVICE_INFO.model.value},
+        minor_version=minor_version,
+    )
+
+
+def _add_device(
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+    entry: MockConfigEntry,
+    address: str,
+) -> dr.DeviceEntry:
+    """Add a device with a battery sensor, as a read with this address creates it."""
+    device = device_registry.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        connections={(dr.CONNECTION_BLUETOOTH, address)},
+    )
+    entity_registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        f"{address}_battery",
+        config_entry=entry,
+        device_id=device.id,
+    )
+    return device
+
+
+async def _setup_wave(hass: HomeAssistant, entry: MockConfigEntry) -> None:
+    """Set up the Wave Plus config entry."""
+    inject_bluetooth_service_info(hass, WAVE_SERVICE_INFO)
+    with (
+        patch_async_ble_device_from_address(WAVE_SERVICE_INFO.device),
+        patch_airthings_ble(WAVE_DEVICE_INFO),
+    ):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+
+async def test_migration_removes_ghost_device(
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Test the migration removes the device and entities of a read without an address."""
+    entry = _ghost_entry()
+    entry.add_to_hass(hass)
+    real = _add_device(
+        device_registry, entity_registry, entry, WAVE_SERVICE_INFO.address
+    )
+    ghost = _add_device(device_registry, entity_registry, entry, "")
+
+    await _setup_wave(hass, entry)
+
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.version == 1
+    assert entry.minor_version == 2
+    assert device_registry.async_get(ghost.id) is None
+    assert entity_registry.async_get_entity_id("sensor", DOMAIN, "_battery") is None
+    assert device_registry.async_get(real.id) is not None
+    assert entity_registry.async_get_entity_id(
+        "sensor", DOMAIN, f"{WAVE_SERVICE_INFO.address}_battery"
+    )
+
+
+async def test_migration_without_ghost_device(
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Test the migration leaves an entry without a ghost device unchanged."""
+    entry = _ghost_entry()
+    entry.add_to_hass(hass)
+    real = _add_device(
+        device_registry, entity_registry, entry, WAVE_SERVICE_INFO.address
+    )
+
+    await _setup_wave(hass, entry)
+
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.minor_version == 2
+    assert dr.async_entries_for_config_entry(device_registry, entry.entry_id) == [
+        device_registry.async_get(real.id)
+    ]
+    assert entity_registry.async_get_entity_id(
+        "sensor", DOMAIN, f"{WAVE_SERVICE_INFO.address}_battery"
+    )
+
+
+async def test_migration_keeps_ghost_device_of_another_entry(
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Test the migration only removes the ghost device of its own entry."""
+    entry = _ghost_entry()
+    entry.add_to_hass(hass)
+    other = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="00:cc:cc:cc:cc:cc",
+        data={DEVICE_MODEL: CORENTIUM_HOME_2_DEVICE_INFO.model.value},
+        minor_version=1,
+        disabled_by=ConfigEntryDisabler.USER,
+    )
+    other.add_to_hass(hass)
+    ghost = _add_device(device_registry, entity_registry, entry, "")
+    other_ghost = device_registry.async_get_or_create(
+        config_entry_id=other.entry_id,
+        connections={(dr.CONNECTION_BLUETOOTH, "")},
+    )
+
+    await _setup_wave(hass, entry)
+
+    assert device_registry.async_get(ghost.id) is None
+    assert device_registry.async_get(other_ghost.id) is not None
+    assert other.minor_version == 1
+
+
+async def test_migration_skipped_for_newer_minor_version(
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Test an entry from a newer minor version keeps its devices and version."""
+    entry = _ghost_entry(minor_version=3)
+    entry.add_to_hass(hass)
+    ghost = _add_device(device_registry, entity_registry, entry, "")
+
+    await _setup_wave(hass, entry)
+
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.minor_version == 3
+    assert device_registry.async_get(ghost.id) is not None
+    assert entity_registry.async_get_entity_id("sensor", DOMAIN, "_battery")
